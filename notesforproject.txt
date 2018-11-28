@@ -1,0 +1,7 @@
+For no forwarding:
+Data Hazards (regarding dependencies) are done if the code is functionally identical to hw5
+Will need to look at branch hazards if those are there (we don't know from pdf)
+
+For Forwarding:
+If there is a dependecy, we do not need to put any of the nops or * stuff, treat it as if there was no data hazard
+We need to implement branch hazard for forwarding
