@@ -65,7 +65,7 @@ struct pipe
     bool valueReady;
 
     //'operatorValue' is used to express the value that is represented by the 'firstVariable' of the element. ex: add $s1,0,214    this add instruction would have a 'firstVariable' of $s1 and that would have an 'operatorValue' of 214
-    char operatorValue[5];
+    int operatorValue;
 };
 
 struct op
@@ -77,10 +77,12 @@ struct op
 	char variable;
 
     //'value' will contain the value that will be outputted after the '=' for the operator. ex: $s1 = 124
-	char value[5];
+	int value;
 
     //'mainValue' is used to reference the first numerical value in the instruction. ex: the main value for $s1 would be 1 in this case
 	int mainValue;
+
+    bool checked;
 
 };
 
@@ -169,7 +171,11 @@ int main(int argc, char* argv[]){
     				{
     					while(isdigit(records[i].tag[j+1]))
     					{
-    						records[i].operatorValue[valueCounter] = records[i].tag[j+1];
+                            
+                            records[i].operatorValue = records[i].operatorValue * 10;
+                            records[i].operatorValue += records[i].tag[j+1] - '0';
+                            
+    						//records[i].operatorValue[valueCounter] = records[i].tag[j+1];
     						valueCounter++;
     						j++;
     					}
@@ -177,7 +183,7 @@ int main(int argc, char* argv[]){
 
     					break;
     				}else{
-    					records[i].operatorValue[0] = '0';
+    					records[i].operatorValue = 0;
     				}
     			}
     		}
@@ -200,14 +206,14 @@ int main(int argc, char* argv[]){
     		operators[i].tag[2] = '0' + opCounter;
     		operators[i].mainValue = opCounter;
     		operators[i].variable = 's';
-    		operators[i].value[0] = '0';
+    		operators[i].value = 0;
     	}else{
     		operators[i].tag[0] = '$';
     		operators[i].tag[1] = 't';
     		operators[i].tag[2] = '0' + opCounter;
     		operators[i].mainValue = opCounter;
     		operators[i].variable = 't';
-    		operators[i].value[0] = '0';
+    		operators[i].value = 0;
     	}
     	opCounter++;
     }
@@ -258,6 +264,12 @@ int main(int argc, char* argv[]){
 
     int max = rowCounter;
 
+    int nopCounter = 0;
+
+    int nopStopper = 7;
+    int nopHasIncreased = 0;
+    bool thereIsAnotherNop = false;
+
     //This 'while' loop contains the entire process for doing the simulation
     while(WB_Counter != max)
     {
@@ -296,75 +308,196 @@ int main(int argc, char* argv[]){
                 //////////////////////////////////
                 //      INPUT CODE FOR NOP      //
                 //////////////////////////////////
+                if(isForwarding == "N")
+                {
+                    for(int z = i; z < rowCounter; z++)
+                    {
+                        //this if statement will make sure that only 2 different instructions are being checked
+                        if(records[z].order != records[i].order)
+                        {
+                            //This for loop will go through the the current 'tag' of the 'record'
+                            for(int l = 0; l < sizeof(records[z].tag); l++)
+                            {
+                                //These next 3 'if' statements will check to see if the 'mainValue' and 'firstVariable' of a previous instruction matches any of the varaibles in the current instruction being checked then it will also check to make sure that the previous instruction also has reached its MEM phase and has not reached its WB phase. If all of these requirements are met then that means a 'nop' instruction has to be created and inputted
+                                if(isdigit(records[z].tag[l]))
+                                {
+                                    if(!isdigit(records[z].tag[l+1]))
+                                    {
+                                        if(records[i].firstVariable == records[z].tag[l-1] && records[i].mainValue == (records[z].tag[l] - '0') && records[i].hasReachedMEM && records[z].hasReachedID && records[z].hasReachedIF && !records[i].WBready)
+                                        {
+                                            //printf("BEGIN NOP OPERATION\n");
+                                            records[z].checkedForNop = true;
 
+                                            //This for loop will make sure that all of the elements in the 'records' array that are in the current index placement and beyond will increment by one so that the current index will have a 'nop' instruction in it
+                                            for(int a = rowCounter - 1; a >= i+1; a--)
+                                            {
+                                                memcpy(&records[a+1],&records[a],128);
+                                            }
 
+                                            //These next 3 lines will clear the current 'tag' of its previous instruction and replace it with a 'nop' as well as give the record variable a true for its 'nop' struct value to indicate that it is indeed a 'nop' instruction
+                                            memset(records[z].tag,0,25);
+                                            strcat(records[z].tag,"nop\t");
+                                            records[z].nop = true;
 
+                                            //This for loop will take the values in the 'pipeline' array from the previous instruction and input it into the 'nop' 'pipeline' array
+                                            for(int a = 0; a < 9; a++)
+                                            {
+                                                memset(records[z].pipeline[a],0,3);
+                                                if(records[z-1].checkedForNop)
+                                                {
+                                                    strcat(records[z].pipeline[a],records[z-1].pipeline[a]);
+                                            
+                                                }else{
+                                                    strcat(records[z].pipeline[a],records[z+1].pipeline[a]);
+                                                }
+                                            }
+                                            records[z].checkedForNop = true;
 
-                /*
-                This entire for loop contains various 'if' statements that check to see if any of the pipeline values can be inserted, such as IF,ID,MEM,etc.
+                                            //These next 4 lines will help with outputting for 'nop' instructions as well as insure that no segmentation faults occur by decreasing the number of '*' a nop instruction can use, adding an extra value to the 'rowCounter' to ensure that the new 'nop' instruction can be viewed, and incrementing the current for loop so the same value is not examined again
+                                            nopStopper--;
+                                            rowCounter++;
+                                            nopCounter = idCounter;
+                                            z++;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
-                this is to see if they reach the point where these values can be used.
+                if(records[i].nop)
+                {
+                    for(int a = 0; a < 16; a++)
+                    {
+                        if(a == nopCounter)
+                        {
+                            memset(records[i].pipeline[a],0,3);
+                            records[i].pipeline[a][0] = '*';
+                        }
+                        if(a != 15)
+                        {
+                            //printf("%s\t",records[i].pipeline[a]);
+                            cout << records[i].pipeline[a] << "\t";
+                        }else{
+                            //printf("%s",records[i].pipeline[a]);
+                            cout << records[i].pipeline[a];
+                        }
+                    }
+                    if(!records[i+1].nop)
+                    {
+                        if(nopCounter < nopStopper)
+                        {
+                            nopCounter ++;
+                            nopHasIncreased++;
+                        }
+                    }
+                    
+                }else{
+                    /*
+                    This entire for loop contains various 'if' statements that check to see if any of the pipeline values can be inserted, such as IF,ID,MEM,etc.
 
-                This is done by checking the 'column', 'counter', and 'start' values of each pipeline value as well as the progress in which the simulation has reached
+                    this is to see if they reach the point where these values can be used.
 
-                Once one of these values has been reached the 'column' and 'counter' values will be incremented so that the next instruction can use the pipeline value
-                */
+                    This is done by checking the 'column', 'counter', and 'start' values of each pipeline value as well as the progress in which the simulation has reached
 
-				for(int j = 0; j < 16; j++)
-				{
-					if(j == ifCounter && i == ifColumn && progressCounter >= startIF)
-					{
-						records[i].pipeline[j][0] = 'I';
-						records[i].pipeline[j][1] = 'F';
-						useIF = true;
-					}
-					if(j == idCounter && i == idColumn && progressCounter >= startID)
-					{
-						records[i].pipeline[j][0] = 'I';
-						records[i].pipeline[j][1] = 'D';
-						useID = true;
-					}
-					if(j == exCounter && i == exColumn && progressCounter >= startEX)
-					{
-						records[i].pipeline[j][0] = 'E';
-						records[i].pipeline[j][1] = 'X';
-						useEX = true;
-					}
-					if(j == memCounter && i == memColumn && progressCounter >= startMEM)
-					{
-						records[i].pipeline[j][0] = 'M';
-						records[i].pipeline[j][1] = 'E';
-						records[i].pipeline[j][2] = 'M';
-						useMEM = true;
-					}
-					if(j == wbCounter && i == wbColumn && progressCounter >= startWB)
-					{
-						records[i].pipeline[j][0] = 'W';
-						records[i].pipeline[j][1] = 'B';
-						records[i].valueReady = true;
+                    Once one of these values has been reached the 'column' and 'counter' values will be incremented so that the next instruction can use the pipeline value
+                    */
 
-                        //Each time an instruction reaches WB this will increment by 1 and once it reaches the same value as the number of instructions that was implemented into the program at the beginning it will end the simulation
-						WB_Counter += 1;
-						useWB = true;
-					}
-					cout << records[i].pipeline[j] << "\t";
-				}
-				cout << endl;
-    		}
-    	}
-    	cout << endl;
+				    for(int j = 0; j < 16; j++)
+				    {
+					   if(j == ifCounter && i == ifColumn && progressCounter >= startIF)
+					   {
+						  records[i].pipeline[j][0] = 'I';
+						  records[i].pipeline[j][1] = 'F';
+						  useIF = true;
+                          records[i].hasReachedIF = true;
+					   }
+					   if(j == idCounter && i == idColumn && progressCounter >= startID)
+					   {
+						  records[i].pipeline[j][0] = 'I';
+						  records[i].pipeline[j][1] = 'D';
+						  useID = true;
+                          records[i].hasReachedID = true;
+					   }
+					   if(j == exCounter && i == exColumn && progressCounter >= startEX)
+					   {
+						  records[i].pipeline[j][0] = 'E';
+						  records[i].pipeline[j][1] = 'X';
+						  useEX = true;
+                          records[i].hasReachedMEM = true;
+					   }
+					   if(j == memCounter && i == memColumn && progressCounter >= startMEM)
+					   {
+						  records[i].pipeline[j][0] = 'M';
+						  records[i].pipeline[j][1] = 'E';
+						  records[i].pipeline[j][2] = 'M';
+						  useMEM = true;
+					   }
+					   if(j == wbCounter && i == wbColumn && progressCounter >= startWB)
+					   {
+						  records[i].pipeline[j][0] = 'W';
+						  records[i].pipeline[j][1] = 'B';
+						  records[i].valueReady = true;
+                          records[i].WBready = true;
+
+                            //Each time an instruction reaches WB this will increment by 1 and once it reaches the same value as the number of instructions that was implemented into the program at the beginning it will end the simulation
+						  WB_Counter += 1;
+						  useWB = true;
+					   }
+					   cout << records[i].pipeline[j] << "\t";
+				    }
+			 	   cout << endl;
+                }//end of if records[i].nop
+    	   }//End of if records[i].ready
+           if(records[i].nop)
+           {
+                cout << endl;
+           }
+    	   cout << endl;
+        }//End of main for loop
 
         //This for loop contains a sequence of code that will output each of the operators ($s0-$s7 and $t0-$t9) and show what their 'value' is by checking to see if they match any of the 'firstVariable' values in the instructions and give them the 'operatorValue' of that instruction
     	for(int z = 0; z < 18; z++)
     	{
     		for(int y = 0; y < rowCounter; y++)
     		{
-    			if(records[y].mainValue == operators[z].mainValue && records[y].valueReady && operators[z].variable == records[y].firstVariable)
+    			if(records[y].mainValue == operators[z].mainValue && records[y].valueReady && operators[z].variable == records[y].firstVariable && operators[z].checked == false)
     			{
-    				for(int x = 0; x < 5; x++)
-    				{
-    					operators[z].value[x] = records[y].operatorValue[x];
-    				}
+                    bool skipThis = false;
+    				//for(int x = 0; x < 5; x++)
+    				//{
+                    //cout << "(";
+                    for(int p = 0; p < sizeof(records[y].tag); p++)
+                    {
+                        for(int q = 0; q < rowCounter; q++)
+                        {
+                            if(records[y].tag[p] == records[q].firstVariable && records[y].order != records[q].order)
+                            {
+                                if((records[y].tag[p+1] - '0') == records[q].mainValue)
+                                {
+                                    //cout << records[y].tag << " MATCHES " << records[q].tag << " for the operator value: " << operators[z].tag << " and the value " << records[q].operatorValue << " will be put in";
+                                    operators[z].value += records[q].operatorValue;
+                                    /*for(int n = 0; n < z; n++)
+                                    {
+                                        if(records[y].tag[1] == operators[n].tag[1] && records[n].tag[2] == operators[z].tag[2])
+                                        {
+                                            cout << records[y].tag[p] << records[y].tag[p+1] << " MATCHES " << records[q].firstVariable << records[q].mainValue;
+                                        }
+                                    }*/
+                                    skipThis = true;
+                                }
+                            }
+                        }
+                    }
+                    //cout << ")"; 
+                    if(skipThis == false)
+                    {
+    				    operators[z].value += records[y].operatorValue;
+                    }
+                    operators[z].checked = true;
+    				//}
     			}
     		}
     		cout << operators[z].tag << " = " << operators[z].value << " \t";
