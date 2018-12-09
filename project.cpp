@@ -70,6 +70,10 @@ struct pipe
     bool instructionBeforeLoop;
 
     string instructionCommand;
+
+    bool skipThisDuringSequence;
+
+    
 };
 
 struct op
@@ -85,8 +89,6 @@ struct op
 
     //'mainValue' is used to reference the first numerical value in the instruction. ex: the main value for $s1 would be 1 in this case
     int mainValue;
-
-    bool checked;
 
 };
 
@@ -130,8 +132,9 @@ int main(int argc, char* argv[]){
             break;
         }
         myReadFile2.get(ch);
-        //cout << ch;
         word[n] = ch;
+
+        //These next 12 lines of code will give each of the struct variables a value for their 'instructionCommad' property. So it will have values like 'add', 'slti', etc. so that later on in the program these instructions can be pulled off if need be
         if(ch == ' ' || ch == ':')
         {
             if(records[rowCounter].tag[n] == ':')
@@ -139,18 +142,13 @@ int main(int argc, char* argv[]){
                 for(int k = 0; k < n; k++)
                 {
                     records[rowCounter].instructionCommand[k] = records[rowCounter].tag[k];
-                    //cout << records[rowCounter].tag[k];
                 }
-                //cout << records[rowCounter].instructionCommand << endl;
             }else{
                 records[rowCounter].instructionCommand = records[rowCounter].tag;
-                //cout << records[rowCounter].instructionCommand << endl;
             }
         }
         if(ch == '\n')
         {
-            
-            //cout << word << endl;
             word[0] = 0;
             n = 0;
             if(strcmp(records[rowCounter].tag,"loop:") == 0)
@@ -181,7 +179,6 @@ int main(int argc, char* argv[]){
             records[i].pipeline[j][0] = '.';
         }
     }
-
     //This next for loop contains a sequence of code to give each 'record' element its 'operatorValue' which will give it a numerical value if a number is in the instruction or a '0' if there isn't
     int commaCounter = 0;
     int valueCounter = 0;
@@ -256,6 +253,7 @@ int main(int argc, char* argv[]){
     }
 
 
+
     //These next 34 lines instantiate local variables that will help with doing the algorithm for the simulation
     int ifColumn = 0;
     int ifCounter = 0;
@@ -319,15 +317,17 @@ int main(int argc, char* argv[]){
                 {
                     for(int y = 0; y < sizeof(records[i].tag); y++)
                     {
-                        if(records[i].tag[y] == 't')
+                        if(records[i].tag[y] == 't' && records[i].tag[y-1] == '$')
                         {
                             records[i].firstVariable = 't';
                             records[i].mainValue = records[i].tag[y+1] - '0';
+                            //cout << "The first variable for " << records[i].tag << " is " << records[i].firstVariable << " and its main value is " << records[i].mainValue << endl;
                             break;
-                        }else if(records[i].tag[y] == 's')
+                        }else if(records[i].tag[y] == 's' && records[i].tag[y-1] == '$')
                         {
                             records[i].firstVariable = 's';
                             records[i].mainValue = records[i].tag[y+1] - '0';
+                            //cout << "The first variable for " << records[i].tag << " is " << records[i].firstVariable << " and its main value is " << records[i].mainValue << endl;
                             break;
                         }
                     }
@@ -482,49 +482,264 @@ int main(int argc, char* argv[]){
            }
            cout << endl;
         }//End of main for loop
+        /*
+        This next for loop contains a sequence of code that will output each of the operators ($s0-$s7 and $t0-$t9) and show what 
+        their 'value' is by checking to see if they match any of the 'firstVariable' values in the instructions and give them 
+        the 'operatorValue' of that instruction
 
-        //This for loop contains a sequence of code that will output each of the operators ($s0-$s7 and $t0-$t9) and show what their 'value' is by checking to see if they match any of the 'firstVariable' values in the instructions and give them the 'operatorValue' of that instruction
+        It will give these operators values based on their instruction. For example instructions like add, addi, and an ori 
+        instruction that is the first instruction of the entire sequence will give values based on their operatorValue. But 
+        if said operatorValue is 0 then we will go through all of the operators of the current instruction and add values to 
+        the current operator based on their values. Then for instructions like 'bne', 'beq', etc. we will still go through the 
+        instruction, take the values of operators and actual numbers that are in the instruction, put them in temporary variables, 
+        and then compare them and put the value from the comparison into the operator we are currently on, meaning that the operator 
+        will either have a '1' or '0' value for these types of instructions.
+        */
         for(int z = 0; z < 18; z++)
         {
             for(int y = 0; y < rowCounter; y++)
             {
-                if(records[y].mainValue == operators[z].mainValue && records[y].valueReady && operators[z].variable == records[y].firstVariable && operators[z].checked == false)
+                
+                if(records[y].valueReady && records[y].mainValue == operators[z].mainValue && operators[z].variable == records[y].firstVariable && records[y].skipThisDuringSequence == false)
                 {
-                    bool skipThis = false;
-                    //for(int x = 0; x < 5; x++)
-                    //{
-                    //cout << "(";
-                    for(int p = 0; p < sizeof(records[y].tag); p++)
-                    {
-                        for(int q = 0; q < rowCounter; q++)
-                        {
-                            if(records[y].tag[p] == records[q].firstVariable && records[y].order != records[q].order)
-                            {
-                                if((records[y].tag[p+1] - '0') == records[q].mainValue)
-                                {
-                                    //cout << records[y].tag << " MATCHES " << records[q].tag << " for the operator value: " << operators[z].tag << " and the value " << records[q].operatorValue << " will be put in";
-                                    operators[z].value += records[q].operatorValue;
-                                    /*for(int n = 0; n < z; n++)
-                                    {
-                                        if(records[y].tag[1] == operators[n].tag[1] && records[n].tag[2] == operators[z].tag[2])
-                                        {
-                                            cout << records[y].tag[p] << records[y].tag[p+1] << " MATCHES " << records[q].firstVariable << records[q].mainValue;
-                                        }
-                                    }*/
-                                    skipThis = true;
-                                }
-                            }
-                        }
-                    }
-                    //cout << ")"; 
-                    if(skipThis == false)
+                    if((records[y].instructionCommand == "add" || records[y].instructionCommand == "addi" || (records[y].instructionCommand == "ori" && y == 0)) && records[y].operatorValue != 0)
                     {
                         operators[z].value += records[y].operatorValue;
+                    }else if(records[y].operatorValue == 0)
+                    {
+                        int commas = 0;
+                        int val1 = 0;
+                        int val2 = 0;
+                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        {
+                            if(records[y].tag[instruct] == ',')
+                            {
+                                commas++;
+                            }
+                            if((commas < 2 && commas > 0) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val1 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas > 1) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val2 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }
+                        }
+                        operators[z].value += (val1+val2);   
+                    }else if(records[y].instructionCommand == "slti")
+                    {
+                        int commas = 0;
+                        int val1 = 0;
+                        int val2 = 0;
+                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        {
+                            if(records[y].tag[instruct] == ',')
+                            {
+                                commas++;
+                            }
+                            if((commas < 2 && commas > 0) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val1 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas < 2 && commas > 0) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                val1 = stoi(ins);
+
+                            }else if((commas > 1) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val2 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas > 1) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                val2 = stoi(ins);
+
+                            }
+                        }
+                        operators[z].value = (val1 < val2);
+
+                    }else if(records[y].instructionCommand == "beq")
+                    {
+                        int commas = 0;
+                        int val1 = 0;
+                        int val2 = 0;
+                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        {
+                            if(records[y].tag[instruct] == ',')
+                            {
+                                commas++;
+                            }
+                            if((commas < 2 && commas > 0) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val1 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas < 2 && commas > 0) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                val1 = stoi(ins);
+
+                            }else if((commas > 1) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val2 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas > 1) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                val2 = stoi(ins);
+
+                            }
+                        }
+                        operators[z].value = (val1 == val2);
+
+                    }else if(records[y].instructionCommand == "bne")
+                    {
+                        int commas = 0;
+                        int val1 = 0;
+                        int val2 = 0;
+                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        {
+                            if(records[y].tag[instruct] == ',')
+                            {
+                                commas++;
+                            }
+                            if((commas < 2 && commas > 0) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                //cout << ins << endl;
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        //cout << "The tag we are getting a value from is: " << operators[r].tag << endl;
+                                        val1 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas < 2 && commas > 0) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                val1 = stoi(ins);
+
+                            }else if((commas > 1) && (records[y].tag[instruct] == 't' || records[y].tag[instruct] == 's'))
+                            {
+                                char ins[2];
+                                ins[0] = records[y].tag[instruct];
+                                ins[1] = records[y].tag[instruct+1];
+                                for(int r = 0; r < 18; r++ ){
+                                    if(ins[0] == operators[r].variable && (ins[1]-'0') == operators[r].mainValue)
+                                    {
+                                        val2 = operators[r].value;
+                                    }
+                                }
+                                instruct++;
+                            }else if((commas > 1) && isdigit(records[y].tag[instruct]) && records[y].tag[instruct-1] == ',')
+                            {
+                                char ins[4];
+                                int insCounter = 0;
+                                while(isdigit(records[y].tag[instruct]))
+                                {
+                                    ins[insCounter] = records[y].tag[instruct];
+                                    insCounter++;
+                                    instruct++;
+                                }
+                                
+                                val2 = stoi(ins);
+
+                            }
+                        }
+                        operators[z].value = (val1 != val2);
+
                     }
-                    operators[z].checked = true;
-                    //}
+                    records[y].skipThisDuringSequence = true;
                 }
             }
+            
             cout << operators[z].tag << " = " << operators[z].value << " \t";
             if(operators[z].mainValue == 3 || operators[z].mainValue == 7)
             {
