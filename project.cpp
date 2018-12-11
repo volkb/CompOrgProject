@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
 
     ifstream myReadFile;
     myReadFile.open(argv[2]);
-    char output[50];
+    //char output[50];
     if (myReadFile.fail()) {
         std::cerr << "ERROR: cannot open " << argv[2] << " to read" << std::endl;
         exit(0);
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]){
     string isForwarding = argv[1];
     int n = 0;
     char ch;
-    char word[25];
+    //char word[25];
     int rowCounter = 0;
     int closeCounter = 0;
     while(!myReadFile.eof())
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
             break;
         }
         myReadFile2.get(ch);
-        word[n] = ch;
+        //word[n] = ch;
 
         //These next 12 lines of code will give each of the struct variables a value for their 'instructionCommad' property. So it will have values like 'add', 'slti', etc. so that later on in the program these instructions can be pulled off if need be
         if(ch == ' ' || ch == ':')
@@ -149,11 +149,11 @@ int main(int argc, char* argv[]){
         }
         if(ch == '\n')
         {
-            word[0] = 0;
+            //word[0] = 0;
             n = 0;
             if(strcmp(records[rowCounter].tag,"loop:") == 0)
             {
-                memset(records[rowCounter].tag,25,0);
+                memset(records[rowCounter].tag,0,25);
                 records[rowCounter].sizeOf -= 5;
                 records[rowCounter-1].instructionBeforeLoop = true;
                 closeCounter--;
@@ -294,12 +294,12 @@ int main(int argc, char* argv[]){
 
     int nopStopper = 7;
     int nopHasIncreased = 0;
-    bool thereIsAnotherNop = false;
+    //bool thereIsAnotherNop = false;
 
     //This 'while' loop contains the entire process for doing the simulation
     while(WB_Counter != max)
     {
-        cout << "--------------------------------------------------------------------------------------------------------------------------------------------------\n";
+        cout << "----------------------------------------------------------------------------------\n";
         cout << "CPU Cycles ===>\t\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\t16\n";
         for(int i = 0; i < rowCounter; i++)
         {
@@ -315,7 +315,7 @@ int main(int argc, char* argv[]){
                 //if a 'record' has not been checked it will receive its 'firstvariable' and 'mainValue' values 
                 if(!records[i].hasBeenChecked)
                 {
-                    for(int y = 0; y < sizeof(records[i].tag); y++)
+                    for(int y = 0; y < (int)sizeof(records[i].tag); y++)
                     {
                         if(records[i].tag[y] == 't' && records[i].tag[y-1] == '$')
                         {
@@ -344,7 +344,7 @@ int main(int argc, char* argv[]){
                         if(records[z].order != records[i].order)
                         {
                             //This for loop will go through the the current 'tag' of the 'record'
-                            for(int l = 0; l < sizeof(records[z].tag); l++)
+                            for(int l = 0; l < (int)sizeof(records[z].tag); l++)
                             {
                                 //These next 3 'if' statements will check to see if the 'mainValue' and 'firstVariable' of a previous instruction matches any of the varaibles in the current instruction being checked then it will also check to make sure that the previous instruction also has reached its MEM phase and has not reached its WB phase. If all of these requirements are met then that means a 'nop' instruction has to be created and inputted
                                 if(isdigit(records[z].tag[l]))
@@ -510,7 +510,7 @@ int main(int argc, char* argv[]){
                         int commas = 0;
                         int val1 = 0;
                         int val2 = 0;
-                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        for(int instruct = 0; instruct < (int)sizeof(records[y].tag); instruct++)
                         {
                             if(records[y].tag[instruct] == ',')
                             {
@@ -548,7 +548,7 @@ int main(int argc, char* argv[]){
                         int commas = 0;
                         int val1 = 0;
                         int val2 = 0;
-                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        for(int instruct = 0; instruct < (int)sizeof(records[y].tag); instruct++)
                         {
                             if(records[y].tag[instruct] == ',')
                             {
@@ -611,7 +611,7 @@ int main(int argc, char* argv[]){
                         int commas = 0;
                         int val1 = 0;
                         int val2 = 0;
-                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        for(int instruct = 0; instruct < (int)sizeof(records[y].tag); instruct++)
                         {
                             if(records[y].tag[instruct] == ',')
                             {
@@ -674,7 +674,7 @@ int main(int argc, char* argv[]){
                         int commas = 0;
                         int val1 = 0;
                         int val2 = 0;
-                        for(int instruct = 0; instruct < sizeof(records[y].tag); instruct++)
+                        for(int instruct = 0; instruct < (int)sizeof(records[y].tag); instruct++)
                         {
                             if(records[y].tag[instruct] == ',')
                             {
@@ -782,7 +782,7 @@ int main(int argc, char* argv[]){
         }
         
     }
-    cout << "--------------------------------------------------------------------------------------------------------------------------------------------------\n";
+    cout << "----------------------------------------------------------------------------------\n";
     cout << "END OF SIMULATION" << endl;
 
 
