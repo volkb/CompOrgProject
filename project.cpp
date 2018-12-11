@@ -300,17 +300,21 @@ int main(int argc, char* argv[]){
     while(WB_Counter != max)
     {
         cout << "----------------------------------------------------------------------------------\n";
-        cout << "CPU Cycles ===>\t\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\t16\n";
+        cout << "CPU Cycles ===>     1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16\n";
         for(int i = 0; i < rowCounter; i++)
         {
             if(records[i].ready)
             {
-                if(records[i].sizeOf > 16)
-                {
-                    cout << records[i].tag << "\t";
-                }else {
-                    cout << records[i].tag << "\t\t";
-                }
+                cout << records[i].tag;
+				if (records[i].tag[0] == 'n') {
+					cout << "                 ";
+				}
+				else {
+					for (int a = records[i].sizeOf; a < 20; a++) {
+						cout << " ";
+					}
+				}
+				
 
                 //if a 'record' has not been checked it will receive its 'firstvariable' and 'mainValue' values 
                 if(!records[i].hasBeenChecked)
@@ -364,7 +368,7 @@ int main(int argc, char* argv[]){
 
                                             //These next 3 lines will clear the current 'tag' of its previous instruction and replace it with a 'nop' as well as give the record variable a true for its 'nop' struct value to indicate that it is indeed a 'nop' instruction
                                             memset(records[z].tag,0,25);
-                                            strcat(records[z].tag,"nop\t");
+                                            strcat(records[z].tag,"nop");
                                             records[z].nop = true;
 
                                             //This for loop will take the values in the 'pipeline' array from the previous instruction and input it into the 'nop' 'pipeline' array
@@ -404,14 +408,20 @@ int main(int argc, char* argv[]){
                             memset(records[i].pipeline[a],0,3);
                             records[i].pipeline[a][0] = '*';
                         }
-                        if(a != 15)
-                        {
-                            //printf("%s\t",records[i].pipeline[a]);
-                            cout << records[i].pipeline[a] << "\t";
-                        }else{
-                            //printf("%s",records[i].pipeline[a]);
-                            cout << records[i].pipeline[a];
-                        }
+						
+						cout << records[i].pipeline[a];
+						if (a != 15) {
+						   if (records[i].pipeline[a][0] == '.' || records[i].pipeline[a][0] == '*') {
+							   cout << "   ";
+						   }
+						   else if (records[i].pipeline[a][0] == 'M') {
+							   cout << " ";
+						   }
+						   else {
+							  cout << "  "; 
+						   }
+					   }
+					   
                     }
                     if(!records[i+1].nop)
                     {
@@ -421,7 +431,7 @@ int main(int argc, char* argv[]){
                             nopHasIncreased++;
                         }
                     }
-                    
+                    cout << endl;
                 }else{
                     /*
                     This entire for loop contains various 'if' statements that check to see if any of the pipeline values can be inserted, such as IF,ID,MEM,etc.
@@ -471,22 +481,35 @@ int main(int argc, char* argv[]){
                           WB_Counter += 1;
                           useWB = true;
                        }
-                       cout << records[i].pipeline[j] << "\t";
+                       cout << records[i].pipeline[j];
+					   if (j != 15) {
+						   if (records[i].pipeline[j][0] == '.') {
+							   cout << "   ";
+						   }
+						   else if (records[i].pipeline[j][0] == 'M') {
+							   cout << " ";
+						   }
+						   else {
+							  cout << "  "; 
+						   }
+					   }
+					   
                     }
                    cout << endl;
                 }//end of if records[i].nop
            }//End of if records[i].ready
-           if(records[i].nop)
-           {
-                cout << endl;
-           }
-           cout << endl;
-        }//End of main for loop
+           // if(records[i].nop)
+           // {
+                // cout << endl;
+           // }
+           // cout << endl;
+        }
+		cout << endl;
+		//End of main for loop
         /*
         This next for loop contains a sequence of code that will output each of the operators ($s0-$s7 and $t0-$t9) and show what 
         their 'value' is by checking to see if they match any of the 'firstVariable' values in the instructions and give them 
         the 'operatorValue' of that instruction
-
         It will give these operators values based on their instruction. For example instructions like add, addi, and an ori 
         instruction that is the first instruction of the entire sequence will give values based on their operatorValue. But 
         if said operatorValue is 0 then we will go through all of the operators of the current instruction and add values to 
@@ -740,13 +763,18 @@ int main(int argc, char* argv[]){
                 }
             }
             
-            cout << operators[z].tag << " = " << operators[z].value << " \t";
-            if(operators[z].mainValue == 3 || operators[z].mainValue == 7)
+            cout << operators[z].tag << " = " << operators[z].value;
+            if(operators[z].mainValue == 3 || operators[z].mainValue == 7 || operators[z].mainValue == 9)
             {
                 cout << endl;
             }
+			else {
+				for (int a = std::to_string(operators[z].value).length(); a < 14; a++) {
+					cout << " ";
+				}
+			}
         }
-        cout << endl;
+        // cout << endl;
         whileCounter++;
 
         //These next sequence of 'if' statements will check to see if the variables that are used to implement the pipeline values can be incremented so that the next instruction can use them
