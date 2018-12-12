@@ -73,6 +73,8 @@ struct pipe
 
     bool skipThisDuringSequence;
 
+    bool isNotNull;
+
     
 };
 
@@ -174,6 +176,8 @@ int main(int argc, char* argv[]){
         records[i].order = orderNum;
         records[i].nop = false;
         orderNum ++;
+        //cout << "RECORDS[I].TAG IS: " << records[i].tag << endl;
+        records[i].isNotNull = true;
         for(int j = 0; j < 16; j++)
         {
             records[i].pipeline[j][0] = '.';
@@ -294,7 +298,7 @@ int main(int argc, char* argv[]){
 
     int nopStopper = 7;
     int nopHasIncreased = 0;
-    //bool thereIsAnotherNop = false;
+    bool thereIsAnotherNop = false;
 
     //This 'while' loop contains the entire process for doing the simulation
     while(WB_Counter != max)
@@ -305,7 +309,7 @@ int main(int argc, char* argv[]){
         {
             if(records[i].ready)
             {
-                if(records[i].sizeOf > 16)
+                if(records[i].sizeOf > 15)
                 {
                     cout << records[i].tag << "\t";
                 }else {
@@ -351,7 +355,7 @@ int main(int argc, char* argv[]){
                                 {
                                     if(!isdigit(records[z].tag[l+1]))
                                     {
-                                        if(records[i].firstVariable == records[z].tag[l-1] && records[i].mainValue == (records[z].tag[l] - '0') && records[i].hasReachedMEM && records[z].hasReachedID && records[z].hasReachedIF && !records[i].WBready)
+                                        if(records[i].firstVariable == records[z].tag[l-1] && records[i].mainValue == (records[z].tag[l] - '0') && records[i].hasReachedMEM && records[z].hasReachedID && records[z].hasReachedIF && !records[i].WBready && records[z].checkedForNop == false)
                                         {
                                             //printf("BEGIN NOP OPERATION\n");
                                             records[z].checkedForNop = true;
@@ -386,6 +390,47 @@ int main(int argc, char* argv[]){
                                             rowCounter++;
                                             nopCounter = idCounter;
                                             z++;
+                                            /*if(!records[z+1].isNotNull)
+                                            {
+                                                if(records[z].tag[0]=='s' && records[z].tag[1] == 'w')
+                                                {
+                                                    nopCounter = idCounter;
+                                                    if(nopHasIncreased < 1){
+                                                            nopStopper++;
+                                                    }
+                                                }
+                                            }*/
+                                            //cout << "HERE HERE HERE HERE HERE HERE HERE HERE HERE PASS" << endl;
+                                            //cout << "RECORDS[Z+1] IS " << records[z+1].tag << " AND ITS VALUE FOR isNotNull IS " << records[z+1].isNotNull << endl;
+                                            bool skipNopStopper = false;
+                                            if(records[z+1].order > 0)
+                                            {
+                                                records[z+1].isNotNull = true;
+                                                skipNopStopper = true;
+                                            }
+                                            if(records[z+1].order != records[i].order && records[z+1].isNotNull)
+                                            {
+                                                //cout << "PASS" << endl;
+                                        
+                                                for(int m = 0; m < (int)sizeof(records[z+1].tag); m++)
+                                                {
+                                                    if(isdigit(records[z+1].tag[m]))
+                                                    {
+                                                        if(records[i].firstVariable == records[z+1].tag[m-1] && records[i].mainValue == (records[z+1].tag[m] - '0') && records[z+1].skip == false)
+                                                        {
+                                                            thereIsAnotherNop = true;
+                                                            records[z+1].skip = true;
+                                                            if(!skipNopStopper){
+                                                                nopStopper--;
+                                                            }
+
+                                                            //records[z+1].nop = true;
+                                                            //rowCounter++;
+
+                                                        }
+                                                    }
+                                                }
+                                            }
                                             break;
                                         }
                                     }
@@ -411,6 +456,26 @@ int main(int argc, char* argv[]){
                         }else{
                             //printf("%s",records[i].pipeline[a]);
                             cout << records[i].pipeline[a];
+                        }
+                    }
+                    if(thereIsAnotherNop)
+                    {
+                        printf("\n");
+                        printf("%s",records[i].tag);
+                        //thereIsAnotherNop = false;
+                        for(int a = 0; a < 16; a++)
+                        {
+                            if(a == nopCounter)
+                            {
+                                memset(records[i].pipeline[a],0,3);
+                                records[i].pipeline[a][0] = '*';
+                            }
+                            if(a != 15)
+                            {
+                                printf("%s\t",records[i].pipeline[a]);
+                            }else{
+                                printf("%s",records[i].pipeline[a]);
+                            }
                         }
                     }
                     if(!records[i+1].nop)
@@ -480,7 +545,7 @@ int main(int argc, char* argv[]){
            {
                 cout << endl;
            }
-           cout << endl;
+           //cout << endl;
         }//End of main for loop
         /*
         This next for loop contains a sequence of code that will output each of the operators ($s0-$s7 and $t0-$t9) and show what 
@@ -502,7 +567,7 @@ int main(int argc, char* argv[]){
                 
                 if(records[y].valueReady && records[y].mainValue == operators[z].mainValue && operators[z].variable == records[y].firstVariable && records[y].skipThisDuringSequence == false)
                 {
-                    if((records[y].instructionCommand == "add" || records[y].instructionCommand == "addi" || (records[y].instructionCommand == "ori" && y == 0)) && records[y].operatorValue != 0)
+                    if((records[y].instructionCommand == "add" || records[y].instructionCommand == "addi" || (records[y].instructionCommand == "ori" && y == 0) || (records[y].instructionCommand == "ori" && y == 1)) && records[y].operatorValue != 0)
                     {
                         operators[z].value += records[y].operatorValue;
                     }else if(records[y].operatorValue == 0)
